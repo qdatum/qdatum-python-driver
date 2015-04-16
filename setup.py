@@ -11,7 +11,7 @@ setup(
     author="Itamar Maltz",
     author_email="ism@qdatum.io",
     packages=find_packages(),
-    install_requires=['requests', 'msgpack'],
+    install_requires=['future', 'requests', 'msgpack-python'],
     platforms=["any"],
     license='MIT',
     keywords="qdatum api",

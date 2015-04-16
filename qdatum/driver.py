@@ -1,3 +1,11 @@
+from __future__ import unicode_literals
+from __future__ import print_function
+from __future__ import division
+from __future__ import absolute_import
+from builtins import str
+from builtins import object
+from future import standard_library
+standard_library.install_aliases()
 import json
 import requests
 import urllib
@@ -6,11 +14,13 @@ import logging
 from functools import wraps
 from qdatum.errors import *
 
+standard_library.install_aliases()
+
 logger = logging.getLogger(__name__)
 VERSION = '0.0.2'
 
 
-class Query():
+class Query(object):
 
     def __init__(self, path, api_endpoint=None, token=None, stream=False, **kwargs):
         self.api_endpoint = api_endpoint
@@ -73,12 +83,15 @@ class Query():
         self.headers['content-type'] = pusher.get_mime()
         logger.info('PUT_STREAM: %s', self.url)
         s = requests.Session()
-        req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.read())
+        if pusher.get_mime() == 'application/x-msgpack':
+            req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.read())
+        else:
+            req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.get_payload())
         rsp = s.send(req.prepare(), stream=True)
         return rsp
 
 
-class Driver():
+class Driver(object):
     """Wraps API calls for slightly easier use
     """
 
