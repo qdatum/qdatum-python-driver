@@ -79,17 +79,34 @@ class Query():
         return requests.get(self.url, stream=self.stream, headers=self.headers)
 
     @_request
-    def put_stream(self, writer, mime='text/plain'):
-        self.headers['content-type'] = writer.get_mime()
-        logger.info('PUT_STREAM: %s, length: ', self.url)
+    def put_stream(self, pusher):
+        self.headers['content-type'] = pusher.get_mime()
+        logger.info('PUT_STREAM: %s', self.url)
         s = requests.Session()
-        req = requests.Request('PUT', self.url, headers=self.headers, data=writer.read())
+        req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.read())
         prepped = req.prepare()
         rsp = s.send(prepped, stream=True)
         return rsp
 
 
 class Driver():
+    STATUS_ACTIVE = 1
+    STATUS_INACTIVE = 2
+    STATUS_PENDING = 3
+    STATUS_FAILED = 9
+    STATUS_DONE = 10
+    STATUS_DELETED = 11
+
+    TAP_ACCESS_PUBLIC = 1
+    TAP_ACCESS_SUBSCRIBERS = 2
+    TAP_ACCESS_PRIVATE = 3
+
+    DATA_STATE_NOT_MATERIALIZED = 1
+    DATA_STATE_MATERIALIZED = 2
+    DATA_STATE_READ_ONLY = 3
+    DATA_STATE_REQUEST_REBUILD = 4
+    DATA_STATE_REBUILDING = 5
+    DATA_STATE_REQUEST_TRUNCATE = 6
 
     """Wraps API calls for slightly easier use
     """
