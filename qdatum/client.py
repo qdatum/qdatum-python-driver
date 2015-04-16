@@ -2,8 +2,8 @@ import json
 
 from .errors import *
 from .driver import Driver
-from .pusher import Pusher
-from .puller import Puller
+from qdatum.pusher import Pusher
+from qdatum.puller import Puller
 
 __all__ = [
     "Client"
@@ -31,13 +31,19 @@ class Client(Driver):
         entity['user'] = json_force(user)
         return self.query('/entity').post(entity)
 
+    def get_endpoints(self):
+        return self.query('/').get()
+
+    def about(self):
+        return self.query('/about').get()
+
     @Driver._authenticated
     def get_feed(self, id):
         return self.query('/feed/' + str(id)).get()
 
     @Driver._authenticated
-    def get_feeds(self, **args):
-        return self.query('/feeds').post(args)
+    def get_feeds(self, **kwargs):
+        return self.query('/feeds').post(kwargs)
 
     @Driver._authenticated
     def create_feed(self, obj):
@@ -74,7 +80,7 @@ class Client(Driver):
 
     @Driver._authenticated
     def pull(self, id):
-        return Puller(self.query('/pull/' + str(id), stream=True).get({'format': 'msgpack'}))
+        return Puller(self.query('/pull/' + str(id), stream=True).get(format='msgpack'))
 
     @Driver._authenticated
     def get_flows(self, **args):

@@ -30,6 +30,6 @@ class Pusher():
                 for row in self._payload():
                     yield msgpack.packb(row, default=self.__pack_parser, use_bin_type=True)
             else:
-                yield msgpack.packb(self._payload(), default=self.__pack_parser, use_bin_type=True)
+                yield msgpack.packb(self._payload, default=self.__pack_parser, use_bin_type=True)
         elif hasattr(self._payload, 'read'):
             return self._payload

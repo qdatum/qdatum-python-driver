@@ -23,16 +23,18 @@ class QdatumApiError(Exception):
 class QdatumBadRequestError(QdatumApiError):
 
     def __init__(self, response):
-        print(repr(response))
         QdatumApiError.__init__(self, 'Bad Request')
         try:
-            self.payload = response.json()
+            self.payload = {'response': response.json()}
         except ValueError:
-            self.payload = {'payload': response.text}
+            self.payload = {'response': response.text}
 
 
 class QdatumNoAuth(QdatumApiError):
 
     def __init__(self, response):
         QdatumApiError.__init__(self, 'Not authorized')
-        self.payload = response.json()
+        try:
+            self.payload = {'response': response.json()}
+        except ValueError:
+            self.payload = {'response': response.text}

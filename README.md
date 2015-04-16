@@ -18,7 +18,8 @@ client = qdatum.Client(api_endpoint="http://api.qdatum.localhost/v1", email="you
 
 ### Creating a feed and a tap
 ```python
-import qdatum
+from qdatum.const import TAP_ACCESS_SUBSCRIBERS, STATUS_PENDING
+
 feed_tpl = {
 	"name": "My Feed",
 	"desc": "My Nice Feed",
@@ -87,7 +88,7 @@ tap_tpl = {
     "name": "Awesome Tap",
     "desc": "Subscribe to this",
     "feed_id": feed["id"],
-    "access": client.TAP_ACCESS_SUBSCRIBERS,
+    "access": TAP_ACCESS_SUBSCRIBERS,
     "status": 1,
     "format": [
     	{
@@ -104,7 +105,7 @@ tap_tpl = {
       "download_notification": "This would show whenever somebody wants to pull through the interface"
     },
     "restrict": {
-      "initial_status": client.STATUS_PENDING,
+      "initial_status": STATUS_PENDING,
       "entity_type": ["demo"],
       "allow_preview": True
     },
@@ -120,33 +121,25 @@ tap = client.create_tap(tap_tpl)
 
 ### Pushing a feed (Generator)
 ```python
-import qdatum
-client = qdatum.Client(api_endpoint="http://api.qdatum.localhost/v1", email="you@example.com", password="123")
 feed_id = 1
 def my_data_generator():
 	for i in range(100):
-		row = {"key1": i, "key2": "somestring}
+		row = {"key1": i, "key2": "somestring"}
 flow = client.push(feed_id, my_data_generator)
 ```
 ### Pushing a feed (File upload)
 ```python
-import qdatum
-client = qdatum.Client(api_endpoint="http://api.qdatum.localhost/v1", email="you@example.com", password="123")
 feed_id = 1
 with open("file.csv", "rb") as fp:
 	flow = client.push(feed_id, fp, mime="text/csv")
 ```
 ### List push flows
 ```python
-import qdatum
-client = qdatum.Client(api_endpoint="http://api.qdatum.localhost/v1", email="you@example.com", password="123")
-
 flows = client.get_flows(feed_end=1)
 ```
 
 ### Pull a tap
 ```python
-import qdatum
 flow = client.pull(1)
 for row in flow:
 	print(repr(row))

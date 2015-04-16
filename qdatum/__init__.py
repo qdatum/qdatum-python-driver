@@ -1,2 +1,2 @@
-from .client import *
-from .errors import *
+from qdatum.client import *
+from qdatum.errors import *
