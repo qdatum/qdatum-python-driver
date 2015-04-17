@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 
 setup(
     name="qdatum",
-    version="0.0.2",
+    version="0.0.4",
     description="API wrapper for the qdatum platform",
-    long_description=open("README.md").read(),
     url="https://github.com/qdatum/qdatum-python-driver",
+    download_url='https://github.com/qdatum/qdatum-python-driver/tarball/0.0.2',
     author="Itamar Maltz",
     author_email="ism@qdatum.io",
     packages=find_packages(),
-    install_requires=['future', 'requests', 'msgpack-python'],
+    install_requires=['future', 'requests', 'requests-futures', 'msgpack-python'],
     platforms=["any"],
     license='MIT',
     keywords="qdatum api",

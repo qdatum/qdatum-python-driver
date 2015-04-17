@@ -11,7 +11,7 @@ import qdatum
 class TestClient(unittest.TestCase):
 
     def setUp(self):
-        self.client = qdatum.Client(api_endpoint='http://api.qdatum.localhost/v1')
+        self.client = qdatum.Client()
 
     def test_connect(self):
         rsp = self.client.about()

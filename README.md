@@ -125,13 +125,33 @@ feed_id = 1
 def my_data_generator():
 	for i in range(100):
 		row = {"key1": i, "key2": "somestring"}
-flow = client.push(feed_id, my_data_generator)
+with client.get_pusher(feed_id) as pusher:
+  flow = pusher.push(my_data_generator)
 ```
 ### Pushing a feed (File upload)
 ```python
 feed_id = 1
 with open("file.csv", "rb") as fp:
-	flow = client.push(feed_id, fp, mime="text/csv")
+  with client.get_pusher(feed_id) as pusher:
+    flow = pusher.push(fp, mime="text/csv")
+```
+
+### Pushing a feed (using async futures)
+```python
+from qdatum.driver import ResponseParser
+
+with client.get_pusher(feed_id) as pusher:
+  QUEUE_SIZE = 512
+  futures = Queue.Queue(maxsize=QUEUE_SIZE+1)
+  for i in range(10000):
+    if i % QUEUE_SIZE == 0
+      while True:
+        try:
+          ResponseParser(futures.get_nowait().result()).parse()
+        except Queue.Empty:
+          break
+    future = pusher.insert_async({'fieldname1': i, 'fieldname2': 'somevalue'})
+    futures.put_nowait(future)
 ```
 ### List push flows
 ```python

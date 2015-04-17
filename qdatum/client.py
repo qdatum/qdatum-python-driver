@@ -37,59 +37,58 @@ class Client(Driver):
     def register(self, entity, user):
         entity = json_force(entity)
         entity['user'] = json_force(user)
-        return self.query('/entity').post(entity)
+        return self.session.post('/entity', entity)
 
     def get_endpoints(self):
-        return self.query('/').get()
+        return self.session.get('/')
 
     def about(self):
-        return self.query('/about').get()
+        return self.session.get('/about')
 
     @Driver._authenticated
     def get_feed(self, id):
-        return self.query('/feed/' + str(id)).get()
+        return self.session.get('/feed/' + str(id))
 
     @Driver._authenticated
     def get_feeds(self, **kwargs):
-        return self.query('/feeds').post(kwargs)
+        return self.session.post('/feeds/', kwargs)
 
     @Driver._authenticated
     def create_feed(self, obj):
-        return self.query('/feed').post(obj)
+        return self.session.post('/feed', obj)
 
     @Driver._authenticated
     def update_feed(self, id, obj):
-        return self.query('/feed/' + str(id)).post(obj)
+        return self.session.post('/feed/' + str(id), obj)
 
     @Driver._authenticated
     def create_tap(self, obj):
-        return self.query('/tap').post(obj)
+        return self.session.post('/tap', obj)
 
     @Driver._authenticated
     def update_tap(self, id, obj):
-        return self.query('/tap/' + str(id)).post(obj)
+        return self.session.post('/tap/' + str(id), obj)
 
     @Driver._authenticated
-    def push(self, id, payload, mime=None):
-        pusher = Pusher(id, payload, mime=mime)
-        return self.query('/push/' + str(id)).put_stream(pusher)
+    def get_pusher(self, feed_id):
+        return Pusher(self, feed_id)
 
     @Driver._authenticated
     def apply(self, tap_id):
-        return self.query('/tap/' + str(tap_id) + '/apply').get()
+        return self.session.get('/tap/' + str(tap_id) + '/apply')
 
     @Driver._authenticated
     def approve(self, subscription_id):
-        return self.query('/subscription/' + str(subscription_id) + '/approve').get()
+        return self.session.get('/subscription/' + str(subscription_id) + '/approve')
 
     @Driver._authenticated
     def reject(self, subscription_id):
-        return self.query('/subscription/' + str(subscription_id) + '/reject').get()
+        return self.session.get('/subscription/' + str(subscription_id) + '/reject')
 
     @Driver._authenticated
     def pull(self, id):
-        return Puller(self.query('/pull/' + str(id), stream=True).get(format='msgpack'))
+        return self.session.get('/pull/' + str(id), stream=True, format='msgpack')
 
     @Driver._authenticated
-    def get_flows(self, **args):
-        return self.query('/flows').post(args)
+    def get_flows(self, **kwargs):
+        return self.session.post('/flows', kwargs)

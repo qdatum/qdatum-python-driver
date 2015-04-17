@@ -10,17 +10,38 @@ import msgpack
 import datetime
 import decimal
 import logging
+import types
 
 logger = logging.getLogger(__name__)
 
 
 class Pusher(object):
-    def __init__(self, id, payload=None, mime="application/x-msgpack"):
-        self._payload = payload
-        self._mime = mime
+    QUEUE_SIZE = 512
 
-    def get_mime(self):
-        return self.mime
+    def __init__(self, driver, feed_id):
+        self._feed_id = feed_id
+        self._driver = driver
+        self._session = self._driver.session
+
+    def push(self, data, mime=None):
+        if mime is None:
+            mime = 'application/x-msgpack'
+            payload = self.__iter_generator(data, mime)
+        else:
+            payload = data
+        return self._session.put('/push/' + str(self._feed_id), payload, mime=mime)
+
+    def insert(self, data):
+        self._session.query('/insert/' + str(self._feed_id), mime="application/x-msgpack").put(msgpack.packb(data, default=self.__pack_parser, use_bin_type=True)).result()
+
+    def insert_async(self, data):
+        return self._session.put_async('/insert/' + str(self._feed_id), msgpack.packb(data, default=self.__pack_parser, use_bin_type=True), mime="application/x-msgpack")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        del self._session
 
     @staticmethod
     def __pack_parser(obj):
@@ -30,14 +51,10 @@ class Pusher(object):
             return str(obj)
         return obj
 
-    def get_payload(self):
-        return self._payload
-
-    def read(self):
+    def __iter_generator(self, data, mime):
         logger.info('Reading push payload')
-
-        if hasattr(self._payload, '__call__'):
-            for row in self._payload():
+        if hasattr(data, '__call__'):
+            for row in data():
                 yield msgpack.packb(row, default=self.__pack_parser, use_bin_type=True)
         else:
-            yield msgpack.packb(self._payload, default=self.__pack_parser, use_bin_type=True)
+            yield msgpack.packb(data, default=self.__pack_parser, use_bin_type=True)

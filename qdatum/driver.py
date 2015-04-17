@@ -10,6 +10,7 @@ import json
 import requests
 import urllib
 import logging
+from requests_futures.sessions import FuturesSession
 
 from functools import wraps
 from qdatum.errors import *
@@ -17,78 +18,114 @@ from qdatum.errors import *
 standard_library.install_aliases()
 
 logger = logging.getLogger(__name__)
-VERSION = '0.0.2'
+__version__ = '0.0.4'
 
 
-class Query(object):
+class ResponseParser(object):
+    def __init__(self, rsp):
+        self.rsp = rsp
 
-    def __init__(self, path, api_endpoint=None, token=None, stream=False, **kwargs):
+    def parse(self, raw=False):
+        if self.rsp.status_code in [200, 201]:
+            if raw is True:
+                return self.rsp
+
+            if self.rsp.headers['content-type'] == 'application/json':
+                data = self.rsp.json()
+                logger.debug('RESPONSE: %s', json.dumps(data))
+            else:
+                data = self.rsp.text
+                logger.debug('RESPONSE: %s', self.rsp.text)
+
+            logger.info('STATUS_CODE: %s', self.rsp.status_code)
+            if data is None:
+                raise QdatumApiError('empty response from server')
+            return data
+        elif self.rsp.status_code in [400, 404]:
+            raise QdatumBadRequestError(self.rsp)
+        elif self.rsp.status_code in [401]:
+            raise QdatumNoAuth(self.rsp)
+        else:
+            raise QdatumApiError(
+                'Unknown status code from server: ' + str(self.rsp.status_code))
+
+
+class Session(object):
+    def __init__(self, token=None, api_endpoint=None, async=False):
+        if async is True:
+            self.session = FuturesSession()
+        else:
+            self.session = requests.Session()
+
         self.api_endpoint = api_endpoint
-        self.url = self.api_endpoint + path
-        self.stream = stream
-        self.headers = {'content-type': 'application/json',
-                        'User-Agent': 'qdatum-python-driver; {0}'.format(VERSION)}
-        if token is not None:
-            self.headers['Authorization'] = token
+        self.token = token
 
-    def __request(func):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        del self.session
+
+    def _request(func):
         @wraps(func)
         def wrapped(inst, *args, **kwargs):
             try:
-                response = func(inst, *args, **kwargs)
-                if response.status_code in [200, 201]:
-                    if inst.stream is True:
-                        return response
-
-                    if response.headers['content-type'] == 'application/json':
-                        data = response.json()
-                        logger.debug('RESPONSE: %s', json.dumps(data))
-                    else:
-                        data = response.text
-                        logger.debug('RESPONSE: %s', response.text)
-
-                    logger.info('STATUS_CODE: %s', response.status_code)
-                    if data is None:
-                        raise QdatumApiError('empty response from server')
-                    return data
-                elif response.status_code in [400, 404]:
-                    raise QdatumBadRequestError(response)
-                elif response.status_code in [401]:
-                    raise QdatumNoAuth(response)
-                else:
-                    raise QdatumApiError(
-                        'Unknown status code from server: ' + str(response.status_code))
+                return func(inst, *args, **kwargs)
             except requests.exceptions.ConnectionError:
                 raise QdatumApiError(
                     'connection refused, bad connection or server down')
 
         return wrapped
 
-    @__request
-    def post(self, payload):
-        logger.info('POST: %s', self.url)
+    def post(self, path, payload, *argv, **kwargs):
+        return self.get_response_parser(self.post_async(path, payload, *argv, **kwargs).result()).parse()
+
+    @_request
+    def post_async(self, path, payload):
+        url = self.api_endpoint + path
+        headers = {'content-type': 'application/json',
+                        'User-Agent': 'qdatum-python-driver; {0}'.format(__version__)}
+        if self.token is not None:
+            headers['Authorization'] = self.token
+
+        logger.info('POST: %s', url)
         logger.debug(json.dumps(payload))
-        return requests.post(self.url, data=json.dumps(payload), headers=self.headers)
+        return self.session.post(url, headers=headers, data=json.dumps(payload))
 
-    @__request
-    def get(self, **kwargs):
-        logger.info('GET: %s => %s', self.url, json.dumps(kwargs))
+    def get(self, *argv, **kwargs):
+        return self.get_response_parser(self.get_async(*argv, **kwargs).result()).parse()
+
+    @_request
+    def get_async(self, path, stream=False, **kwargs):
+        url = self.api_endpoint + path
+        headers = {'content-type': 'application/json',
+                        'User-Agent': 'qdatum-python-driver; {0}'.format(__version__)}
+        if self.token is not None:
+            headers['Authorization'] = self.token
+
+        logger.info('GET: %s => %s', url, json.dumps(kwargs))
         if len(kwargs) > 0:
-            self.url = self.url + '?' + urllib.parse.urlencode(kwargs)
+            url = '{0}?{1}'.format(url, urllib.parse.urlencode(kwargs))
 
-        return requests.get(self.url, stream=self.stream, headers=self.headers)
+        return self.session.get(url, headers=headers, stream=stream)
 
-    @__request
-    def put_stream(self, pusher):
-        self.headers['content-type'] = pusher.get_mime()
-        logger.info('PUT_STREAM: %s', self.url)
-        s = requests.Session()
-        if pusher.get_mime() == 'application/x-msgpack':
-            req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.read())
-        else:
-            req = requests.Request('PUT', self.url, headers=self.headers, data=pusher.get_payload())
-        rsp = s.send(req.prepare(), stream=True)
-        return rsp
+    def put(self, *argv, **kwargs):
+        return self.get_response_parser(self.put_async(*argv, **kwargs).result()).parse()
+
+    @_request
+    def put_async(self, path, payload, stream=False, **kwargs):
+        url = self.api_endpoint + path
+        headers = {'content-type': 'application/json' if 'mime' not in kwargs else kwargs['mime'],
+                        'User-Agent': 'qdatum-python-driver; {0}'.format(__version__)}
+        if self.token is not None:
+            headers['Authorization'] = self.token
+
+        logger.info('PUT: %s', url)
+
+        return self.session.put(url, data=payload, headers=headers, stream=stream)
+
+    def get_response_parser(self, rsp):
+        return ResponseParser(rsp)
 
 
 class Driver(object):
@@ -100,16 +137,19 @@ class Driver(object):
     def __init__(self, api_endpoint=None, email=None, password=None, token=None):
         self.token = token
         self.api_endpoint = api_endpoint if api_endpoint is not None else self.__default_api_endpoint
+        self.session = self.create_session(async=True)
+
         if email is not None and password is not None:
             self.connect(email, password)
 
     def connect(self, email, password):
-        data = self.query('/auth').post({
+        data = self.session.post('/auth', {
             'email': email,
             'password': password
         })
         self.user = data['user']
         self.token = data['token']
+        self.session.token = self.token
 
     @classmethod
     def _authenticated(cls, func):
@@ -121,7 +161,7 @@ class Driver(object):
             return func(inst, *args, **kwargs)
         return wrapped
 
-    def query(self, *args, **kwargs):
+    def create_session(self, *args, **kwargs):
         kwargs['api_endpoint'] = self.api_endpoint
         kwargs['token'] = self.token
-        return Query(*args, **kwargs)
+        return Session(*args, **kwargs)
