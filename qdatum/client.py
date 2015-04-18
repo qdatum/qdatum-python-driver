@@ -7,9 +7,7 @@ from builtins import str
 from future import standard_library
 standard_library.install_aliases()
 import json
-
-from .errors import *
-from .driver import Driver
+from qdatum.driver import Driver, ResponseParser
 from qdatum.pusher import Pusher
 from qdatum.puller import Puller
 
@@ -51,7 +49,11 @@ class Client(Driver):
 
     @Driver._authenticated
     def get_feeds(self, **kwargs):
-        return self.session.post('/feeds/', kwargs)
+        return self.session.post('/feeds', kwargs)
+
+    @Driver._authenticated
+    def search(self, **kwargs):
+        return self.session.post('/search', kwargs)
 
     @Driver._authenticated
     def create_feed(self, obj):
@@ -70,7 +72,7 @@ class Client(Driver):
         return self.session.post('/tap/' + str(id), obj)
 
     @Driver._authenticated
-    def get_pusher(self, feed_id):
+    def get_pusher(self, feed_id=None):
         return Pusher(self, feed_id)
 
     @Driver._authenticated
@@ -86,8 +88,15 @@ class Client(Driver):
         return self.session.get('/subscription/' + str(subscription_id) + '/reject')
 
     @Driver._authenticated
-    def pull(self, id):
-        return self.session.get('/pull/' + str(id), stream=True, format='msgpack')
+    def pull(self, **kwargs):
+        if 'format' not in kwargs:
+            kwargs['format'] = 'msgpack'
+            return Puller(ResponseParser(self.session.post_async('/pull', kwargs, stream=True).result()).parse(raw=True))
+        else:
+            return self.session.post('/pull', kwargs, stream=True)
+
+    def pull_review(self, **kwargs):
+        self.session.post('/pull/review', kwargs, stream=True)
 
     @Driver._authenticated
     def get_flows(self, **kwargs):

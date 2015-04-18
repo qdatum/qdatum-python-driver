@@ -13,7 +13,7 @@ Usage Examples
 ### Connecting
 ```python
 import qdatum
-client = qdatum.Client(api_endpoint="http://api.qdatum.localhost/v1", email="you@example.com", password="123")
+client = qdatum.Client(api_endpoint="http://api.qdatum.io/v1", email="you@example.com", password="123")
 ```
 
 ### Creating a feed and a tap
@@ -136,19 +136,27 @@ with open("file.csv", "rb") as fp:
     flow = pusher.push(fp, mime="text/csv")
 ```
 
-### Pushing a feed (using async futures)
+### Pushing a single record
+
+Note: single row updates are not part of a flow and are treated as a stand-alone transaction. the main feed dataset would be updated immediately during the transaction and a record of it would only be available through the audit log.
+#### Blocking
 ```python
+client.get_pusher(feed_id).insert({'fieldname1': i, 'fieldname2': 'somevalue'})
+```
+#### Async
+```python
+import queue
 from qdatum.driver import ResponseParser
 
 with client.get_pusher(feed_id) as pusher:
   QUEUE_SIZE = 512
-  futures = Queue.Queue(maxsize=QUEUE_SIZE+1)
+  futures = queue.Queue(maxsize=QUEUE_SIZE+1)
   for i in range(10000):
     if i % QUEUE_SIZE == 0
       while True:
         try:
           ResponseParser(futures.get_nowait().result()).parse()
-        except Queue.Empty:
+        except queue.Empty:
           break
     future = pusher.insert_async({'fieldname1': i, 'fieldname2': 'somevalue'})
     futures.put_nowait(future)
@@ -160,7 +168,7 @@ flows = client.get_flows(feed_end=1)
 
 ### Pull a tap
 ```python
-flow = client.pull(1)
+flow = client.pull(tap_id=1)
 for row in flow:
 	print(repr(row))
 ```

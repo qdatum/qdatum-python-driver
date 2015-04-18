@@ -9,21 +9,39 @@ from builtins import object
 import msgpack
 import logging
 
+from qdatum import errors
+
 logger = logging.getLogger(__name__)
 
 
 class Puller(object):
     def __init__(self, rsp):
         logger.info('Unpacking pull request')
-        self.unpacker = msgpack.Unpacker(rsp.content, encoding='utf-8')
+        self.content = rsp.iter_content()
+        self.unpacker = msgpack.Unpacker(encoding='utf-8')
+        self.recv_gen = self.__recv()
+
+        #self.unpacker = msgpack.Unpacker(rsp.iter_content(), encoding='utf-8')
+
+    def __recv(self):
+        while True:
+            buf = next(self.content)
+            if not buf:
+                break
+            self.unpacker.feed(buf)
+            for o in self.unpacker:
+                yield o
 
     def __iter__(self):
         return self
 
     def __next__(self):
+
         try:
-            return next(self.unpacker)
+            return next(self.recv_gen)
         except StopIteration:
+            raise StopIteration
+        except TypeError:
             raise StopIteration
 
     def readall(self):

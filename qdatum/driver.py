@@ -18,7 +18,7 @@ from qdatum.errors import *
 standard_library.install_aliases()
 
 logger = logging.getLogger(__name__)
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 
 class ResponseParser(object):
@@ -41,8 +41,10 @@ class ResponseParser(object):
             if data is None:
                 raise QdatumApiError('empty response from server')
             return data
-        elif self.rsp.status_code in [400, 404]:
+        elif self.rsp.status_code == 400:
             raise QdatumBadRequestError(self.rsp)
+        elif self.rsp.status_code == 404:
+            raise QdatumPageNotFoundError(self.rsp)
         elif self.rsp.status_code in [401]:
             raise QdatumNoAuth(self.rsp)
         else:
@@ -77,11 +79,11 @@ class Session(object):
 
         return wrapped
 
-    def post(self, path, payload, *argv, **kwargs):
-        return self.get_response_parser(self.post_async(path, payload, *argv, **kwargs).result()).parse()
+    def post(self, path, payload, stream=False):
+        return self.get_response_parser(self.post_async(path, payload, stream=stream).result()).parse()
 
     @_request
-    def post_async(self, path, payload):
+    def post_async(self, path, payload, stream=False):
         url = self.api_endpoint + path
         headers = {'content-type': 'application/json',
                         'User-Agent': 'qdatum-python-driver; {0}'.format(__version__)}
@@ -90,7 +92,7 @@ class Session(object):
 
         logger.info('POST: %s', url)
         logger.debug(json.dumps(payload))
-        return self.session.post(url, headers=headers, data=json.dumps(payload))
+        return self.session.post(url, headers=headers, data=json.dumps(payload), stream=stream)
 
     def get(self, *argv, **kwargs):
         return self.get_response_parser(self.get_async(*argv, **kwargs).result()).parse()
@@ -150,6 +152,9 @@ class Driver(object):
         self.user = data['user']
         self.token = data['token']
         self.session.token = self.token
+
+    def close(self):
+        del self.session
 
     @classmethod
     def _authenticated(cls, func):

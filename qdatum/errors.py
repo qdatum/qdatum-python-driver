@@ -8,7 +8,7 @@ standard_library.install_aliases()
 import json
 
 __all__ = [
-    "QdatumApiError", "QdatumBadRequestError", "QdatumNoAuth"
+    "QdatumApiError", "QdatumBadRequestError", "QdatumPageNotFoundError", "QdatumNoAuth"
 ]
 
 
@@ -31,6 +31,15 @@ class QdatumBadRequestError(QdatumApiError):
 
     def __init__(self, response):
         QdatumApiError.__init__(self, 'Bad Request')
+        try:
+            self.payload = {'response': response.json()}
+        except ValueError:
+            self.payload = {'response': response.text}
+
+
+class QdatumPageNotFoundError(QdatumApiError):
+    def __init__(self, response):
+        QdatumApiError.__init__(self, 'Not Found')
         try:
             self.payload = {'response': response.json()}
         except ValueError:
