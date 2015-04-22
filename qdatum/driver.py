@@ -18,7 +18,7 @@ from qdatum.errors import *
 standard_library.install_aliases()
 
 logger = logging.getLogger(__name__)
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 
 
 class ResponseParser(object):
@@ -66,7 +66,11 @@ class Session(object):
         return self
 
     def __exit__(self, type, value, traceback):
+        self.session.close()
         del self.session
+
+    def close(self):
+        self.session.close()
 
     def _request(func):
         @wraps(func)
@@ -154,6 +158,7 @@ class Driver(object):
         self.session.token = self.token
 
     def close(self):
+        self.session.close()
         del self.session
 
     @classmethod

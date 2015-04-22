@@ -49,11 +49,11 @@ class Client(Driver):
 
     @Driver._authenticated
     def get_feeds(self, **kwargs):
-        return self.session.post('/feeds', kwargs)
+        return self.session.post('/feeds', kwargs)['objects']
 
     @Driver._authenticated
     def search(self, **kwargs):
-        return self.session.post('/search', kwargs)
+        return self.session.post('/search', kwargs)['objects']
 
     @Driver._authenticated
     def create_feed(self, obj):
@@ -87,6 +87,21 @@ class Client(Driver):
     def reject(self, subscription_id):
         return self.session.get('/subscription/' + str(subscription_id) + '/reject')
 
+    def subscribers(self, **kwargs):
+        return self.session.post('/subscribers', kwargs)['objects']
+
+    @Driver._authenticated
+    def get_transactions(self, **kwargs):
+        return self.session.post('/transactions', kwargs)['objects']
+
+    @Driver._authenticated
+    def get_balances(self, **kwargs):
+        return self.session.post('/balances', kwargs)['objects']
+
+    @Driver._authenticated
+    def give_credit(self, **kwargs):
+        return self.session.post('/transaction', kwargs)
+
     @Driver._authenticated
     def pull(self, **kwargs):
         if 'format' not in kwargs:
@@ -95,6 +110,7 @@ class Client(Driver):
         else:
             return self.session.post('/pull', kwargs, stream=True)
 
+    @Driver._authenticated
     def pull_review(self, **kwargs):
         self.session.post('/pull/review', kwargs, stream=True)
 

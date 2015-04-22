@@ -16,12 +16,11 @@ logger = logging.getLogger(__name__)
 
 class Puller(object):
     def __init__(self, rsp):
+        self.rsp = rsp
         logger.info('Unpacking pull request')
-        self.content = rsp.iter_content()
+        self.content = rsp.iter_content(8192)
         self.unpacker = msgpack.Unpacker(encoding='utf-8')
         self.recv_gen = self.__recv()
-
-        #self.unpacker = msgpack.Unpacker(rsp.iter_content(), encoding='utf-8')
 
     def __recv(self):
         while True:
@@ -40,9 +39,10 @@ class Puller(object):
         try:
             return next(self.recv_gen)
         except StopIteration:
+            self.rsp.close()
             raise StopIteration
-        except TypeError:
-            raise StopIteration
+        except TypeError as e:
+            raise e
 
     def readall(self):
         rsp = []

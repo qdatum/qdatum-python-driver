@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="qdatum",
-    version="0.0.5",
+    version="0.0.6",
     description="API wrapper for the qdatum platform",
     url="https://github.com/qdatum/qdatum-python-driver",
     download_url='https://github.com/qdatum/qdatum-python-driver/tarball/0.0.5',

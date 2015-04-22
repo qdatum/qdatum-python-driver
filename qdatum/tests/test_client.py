@@ -13,6 +13,9 @@ class TestClient(unittest.TestCase):
     def setUp(self):
         self.client = qdatum.Client()
 
+    def tearDown(self):
+        self.client.close()
+
     def test_connect(self):
         rsp = self.client.about()
         self.assertDictEqual(rsp, {'version': '0.3.1'})
