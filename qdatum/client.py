@@ -44,8 +44,8 @@ class Client(Driver):
         return self.session.get('/about')
 
     @Driver._authenticated
-    def get_feed(self, id):
-        return self.session.get('/feed/' + str(id))
+    def get_feed(self, feed_id):
+        return self.session.get('/feed/' + str(feed_id))
 
     @Driver._authenticated
     def get_feeds(self, **kwargs):
@@ -60,16 +60,16 @@ class Client(Driver):
         return self.session.post('/feed', obj)
 
     @Driver._authenticated
-    def update_feed(self, id, obj):
-        return self.session.post('/feed/' + str(id), obj)
+    def update_feed(self, feed_id, obj):
+        return self.session.post('/feed/' + str(feed_id), obj)
 
     @Driver._authenticated
     def create_tap(self, obj):
         return self.session.post('/tap', obj)
 
     @Driver._authenticated
-    def update_tap(self, id, obj):
-        return self.session.post('/tap/' + str(id), obj)
+    def update_tap(self, tap_id, obj):
+        return self.session.post('/tap/' + str(tap_id), obj)
 
     @Driver._authenticated
     def get_pusher(self, feed_id=None):
@@ -116,4 +116,4 @@ class Client(Driver):
 
     @Driver._authenticated
     def get_flows(self, **kwargs):
-        return self.session.post('/flows', kwargs)
+        return self.session.post('/flows', kwargs)['objects']
